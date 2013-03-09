@@ -31,17 +31,15 @@
 #ifndef _UDI_RT_POSIX_H_
 #define _UDI_RT_POSIX_H_ 1
 
-#include "udi.h"
-#include "udi-common.h"
+#include <sys/types.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// Response request handling
-
-int read_all(int fd, void *dest, size_t length);
-int write_all(int fd, void *src, size_t length);
+typedef int udi_handle;
+typedef pid_t udi_pid;
+typedef uint64_t udi_tid;
 
 #ifdef __cplusplus
 } // extern C

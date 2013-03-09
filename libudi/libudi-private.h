@@ -36,14 +36,6 @@
 extern "C" {
 #endif
 
-#ifdef UNIX
-typedef int udi_handle;
-typedef pid_t udi_pid;
-typedef uint64_t udi_tid;
-#else
-#error Unknown platform
-#endif
-
 struct udi_thread_struct {
     int initial;
     udi_tid tid;

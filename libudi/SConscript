@@ -1,6 +1,7 @@
 #
 # SConscript for libudi
 #
+# vim: syntax=python:
 
 import udibuild
 
@@ -14,6 +15,9 @@ sources = ['libudi.c']
 
 if udibuild.IsUnix():
     sources.append('libudi-posix.c')
+
+if udibuild.IsWindows():
+    sources.append('libudi-win.c')
 
 libs = ['udicommon']
 

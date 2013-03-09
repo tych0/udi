@@ -8,3 +8,4 @@ cscope.out
 .sconf_temp
 config.log
 .clang_complete
+.udi.config

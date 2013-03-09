@@ -31,8 +31,10 @@
 #ifndef _UDI_COMMON_H
 #define _UDI_COMMON_H 1
 
-#include "udi.h"
 #include <stdlib.h>
+
+#include "udi.h"
+#include "udi-common-platform.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,9 +91,12 @@ typedef struct {
 } udi_errmsg;
 
 /* helper functions */
-
 const char *request_type_str(udi_request_type req_type); 
 const char *event_type_str(udi_event_type event_type);
+
+/* Response request handling */
+int read_all(udi_handle fd, void *dest, size_t length);
+int write_all(udi_handle fd, void *src, size_t length);
 
 /* self-contained data structure serialization */
 typedef void *(*malloc_type)(size_t);

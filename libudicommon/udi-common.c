@@ -204,8 +204,10 @@ int udi_packer(int pack, unsigned char *data, udi_length length, va_list ap) {
             }
         }else if (next_arg_is_size) {
             if ( pack ) {
+                udi_length tmp_next_arg_size;
+
                 next_arg_size = va_arg(ap, udi_length);
-                udi_length tmp_next_arg_size = udi_length_hton(next_arg_size);
+                tmp_next_arg_size = udi_length_hton(next_arg_size);
                 memcpy(data + current_length, &tmp_next_arg_size, 
                         sizeof(udi_length));
             }else{
@@ -306,10 +308,11 @@ int udi_packer(int pack, unsigned char *data, udi_length length, va_list ap) {
 }
 
 void *udi_pack_data(udi_length length, ...) {
+    va_list ap;
     void *result = data_allocator(length);
+
     if ( NULL == result ) return NULL;
 
-    va_list ap;
     va_start(ap, length);
 
     if ( udi_packer(1, (unsigned char *)result, length, ap) ) {
@@ -323,10 +326,12 @@ void *udi_pack_data(udi_length length, ...) {
 }
 
 int udi_unpack_data(void *data, udi_length length, ...) {
+    int result;
     va_list ap;
+
     va_start(ap, length);
 
-    int result = udi_packer(0, (unsigned char *)data, length, ap);
+    result = udi_packer(0, (unsigned char *)data, length, ap);
 
     va_end(ap);
 

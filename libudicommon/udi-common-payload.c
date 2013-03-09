@@ -28,10 +28,11 @@
 
 // UDI message payload handling
 
-#include "udi-common.h"
-
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
+
+#include "udi-common.h"
+#include "udi-common-platform.h"
 
 /**
  * Frees an internal event
@@ -539,6 +540,7 @@ udi_request create_request_write(udi_address addr, udi_length num_bytes, void *v
     udi_request request;
     request.request_type = UDI_REQ_WRITE_MEM;
     request.request_type = num_bytes + sizeof(udi_length) + sizeof(udi_address);
+    request.length = 0;
     request.packed_data = udi_pack_data(request.length,
             UDI_DATATYPE_ADDRESS, addr, UDI_DATATYPE_BYTESTREAM,
             num_bytes, value);
@@ -678,6 +680,7 @@ int unpack_response_init(udi_response *resp, uint32_t *protocol_version,
  */
 int unpack_response_state(udi_response *resp, int *num_threads, thread_state **states) {
 
+    int i;
     size_t single_thread_length = 
             member_sizeof(thread_state, state) + member_sizeof(thread_state, tid);
 
@@ -691,7 +694,6 @@ int unpack_response_state(udi_response *resp, int *num_threads, thread_state **s
     }
 
     // Populate the threads
-    int i;
     for (i = 0; i < threads; ++i) {
         thread_state *cur_state = &local_states[i];
         memcpy(&(cur_state->tid), ((unsigned char *)resp->packed_data) + single_thread_length*i,

@@ -15,6 +15,21 @@ def IsUnix():
     else:
         return False
 
+def GetConfigureOutput():
+    return '.udi.config'
+
+def IsWindows():
+    if platform.system() == 'Windows':
+        return True
+    else:
+        return False
+
+def GetSconsPlatform():
+    if IsWindows():
+        return 'win32'
+    else:
+        return 'posix'
+
 def IsLittleEndian():
     if sys.byteorder == 'little':
         return True

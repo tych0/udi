@@ -15,6 +15,9 @@ sources = ['udi-common.c', 'udi-common-payload.c']
 if udibuild.IsUnix():
     sources.append('udi-common-posix.c')
 
+if udibuild.IsWindows():
+    sources.append('udi-common-win.c')
+
 if udibuild.IsLittleEndian():
     sources.append('udi-common-little.c')
 else:

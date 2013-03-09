@@ -26,59 +26,50 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-// Shared debugger and debuggee UDI implementation specific to POSIX
+/* windows platform header shared between debugger and debuggee */
 
-#define _GNU_SOURCE
+#ifndef _UDI_COMMON_WIN_H
+#define _UDI_COMMON_WIN_H 1
 
-#include <sys/types.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <stdio.h>
-#include <unistd.h>
+#include <stdarg.h>
 
-#include "udi.h"
-#include "udi-common.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-// platform specific variables
-const char *UDI_DS = "/";
-const unsigned int DS_LEN = 1;
-const char *DEFAULT_UDI_ROOT_DIR = "/tmp/udi";
+/* udi library types */
+typedef void * udi_handle;
+typedef unsigned long udi_pid;
+typedef uint64_t udi_tid;
 
-int read_all(udi_handle fd, void *dest, size_t length) {
-    size_t total = 0;
-    while (total < length) {
-        ssize_t num_read = read(fd, ((unsigned char*)dest) + total, 
-                length - total);
+#define snprintf c99_snprintf
 
-        if ( num_read == 0 ) {
-            // Treat end-of-file as a separate error
-            return -1;
-        }
+__inline int c99_snprintf(char* str, size_t size, const char* format, ...)
+{
+    int count;
+    va_list ap;
 
-        if (num_read < 0) {
-            if (errno == EINTR) continue;
-            return errno;
-        }
-        total += num_read;
-    }
+    va_start(ap, format);
+    count = c99_vsnprintf(str, size, format, ap);
+    va_end(ap);
 
-    return 0;
+    return count;
 }
 
-int write_all(udi_handle fd, void *src, size_t length) {
-    size_t total = 0;
-    while (total < length) {
-        ssize_t num_written = write(fd, ((unsigned char *)src) + total, 
-                length - total);
-        if ( num_written < 0 ) {
-            if ( errno == EINTR ) continue;
-            return errno;
-        }
+__inline int c99_vsnprintf(char* str, size_t size, const char* format, va_list ap)
+{
+    int count = -1;
 
-        total += num_written;
-    }
+    if (size != 0)
+        count = _vsnprintf_s(str, size, _TRUNCATE, format, ap);
+    if (count == -1)
+        count = _vscprintf(format, ap);
 
-    return 0;
+    return count;
 }
+
+#ifdef __cplusplus
+} // extern C
+#endif
+
+#endif /* _UDI_COMMON_WIN_H */

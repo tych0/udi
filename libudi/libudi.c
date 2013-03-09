@@ -100,6 +100,212 @@ udi_error_e init_libudi() {
 }
 
 /**
+ * Writes a request to the specified handle
+ *
+ * @param req           the request
+ * @param handle        the handle
+ *
+ * @return 0 on success, non-zero on failure; if result > 0, it is errno
+ */
+static
+int write_request_handle(udi_request *req, udi_handle handle) {
+    int errnum = 0;
+    do {
+        udi_length tmp_length;
+
+        udi_request_type tmp_type = req->request_type;
+        tmp_type = udi_request_type_hton(tmp_type);
+        if ( (errnum = write_all(handle, &tmp_type,
+                        sizeof(udi_request_type))) != 0 ) break;
+
+        tmp_length = req->length;
+        tmp_length = udi_length_hton(tmp_length);
+        if ( (errnum = write_all(handle, &tmp_length,
+                        sizeof(udi_length))) != 0 ) break;
+
+        if ( (errnum = write_all(handle, req->packed_data,
+                        req->length)) != 0 ) break;
+    }while(0);
+
+    if ( errnum != 0 ) {
+        udi_printf("failed to send request: %s\n", strerror(errnum));
+    }
+
+    return errnum;
+}
+
+/**
+ * Writes a request to the specified process
+ *
+ * @param req           the request
+ * @param proc          the process handle
+ *
+ * @return 0 on success, non-zero on failure; if result > 0, it is errno
+ */
+int write_request(udi_request *req, udi_process *proc) {
+    return write_request_handle(req, proc->request_handle);
+}
+
+/**
+ * Writes a request to the specified thread
+ *
+ * @param req           the request
+ * @param thr           the thread
+ *
+ * @return 0 on success, non-zero on failure; if result >0, it is errno
+ */
+int write_request_thr(udi_request *req, udi_thread *thr) {
+    return write_request_handle(req, thr->request_handle);
+}
+
+/**
+ * Reads a response from the specified process
+ *
+ * @param handle the handle
+ *
+ * @return 0 on success, non-zero on failure; if result > 0, it is errno
+ */
+static
+udi_response *read_response_handle(udi_handle handle) 
+{
+    int errnum = 0;
+    udi_response *response = (udi_response *)malloc(sizeof(udi_response));
+
+    if ( response == NULL ) {
+        udi_printf("malloc failed: %s\n", strerror(errno));
+        return NULL;
+    }
+
+    response->packed_data = NULL;
+    do {
+        // read the response type and length
+        if ( (errnum = read_all(handle, 
+                        &(response->response_type), 
+                        sizeof(udi_response_type))) != 0 ) break;
+        response->response_type = udi_response_type_ntoh(
+                response->response_type);
+
+        if ( (errnum = read_all(handle,
+                    &(response->request_type), 
+                    sizeof(udi_request_type))) != 0 ) break;
+        response->request_type = udi_request_type_ntoh(response->request_type);
+
+        if ( (errnum = read_all(handle,
+                        &(response->length), sizeof(udi_length))) != 0 ) break;
+        response->length = udi_length_ntoh(response->length);
+
+        if ( response->length > 0 ) {
+            response->packed_data = malloc(response->length);
+            if ( response->packed_data == NULL ) {
+                errnum = errno;
+                break;
+            }
+            if ( (errnum = read_all(handle,
+                            response->packed_data,
+                            response->length)) != 0 ) break;
+        }
+    }while(0);
+
+    if ( errnum != 0 ) {
+        if ( errnum > 0 ) {
+            udi_printf("read_all failed: %s\n", strerror(errnum));
+        }
+        free_response(response);
+        return NULL;
+    }
+
+    return response;
+}
+
+/**
+ * Reads a response from the specified process
+ *
+ * @param proc  the process handle
+ *
+ * @return 0 on success, non-zero on failure; if result > 0, it is errno
+ */
+udi_response *read_response(udi_process *proc) {
+    return read_response_handle(proc->response_handle);
+}
+
+/**
+ * Reads a response from the specified thread
+ *
+ * @param thr the thread
+ *
+ * @return 0 on success, non-zero on failure; if result > 0, it is errno
+ */
+udi_response *read_response_thr(udi_thread *thr) {
+    return read_response_handle(thr->response_handle);
+}
+
+/**
+ * Reads an event from the specified process
+ *
+ * @param proc  the process handle
+ *
+ * @return 0 on success, non-zero on failure; if result > 0, it is errno
+ */
+udi_event *read_event(udi_process *proc) {
+    int errnum = 0;
+    udi_event *ret_event;
+
+    udi_event_internal *event = (udi_event_internal *)
+        malloc(sizeof(udi_event_internal));
+    event->packed_data = NULL;
+
+    if ( event == NULL ) {
+        udi_printf("malloc failed: %s\n", strerror(errno));
+        return NULL;
+    }
+
+    // Read the raw event
+    do {
+        if ( (errnum = read_all(proc->events_handle,
+                        &(event->event_type),
+                        sizeof(udi_event_type))) != 0 ) break;
+        event->event_type = udi_event_type_ntoh(event->event_type);
+
+        if ( (errnum = read_all(proc->events_handle,
+                        &(event->thread_id),
+                        sizeof(event->thread_id))) != 0 ) break;
+        event->thread_id = udi_uint64_t_ntoh(event->thread_id);
+
+        if ( (errnum = read_all(proc->events_handle,
+                        &(event->length),
+                        sizeof(udi_length))) != 0 ) break;
+        event->length = udi_length_ntoh(event->length);
+
+        if (event->length > 0) {
+            event->packed_data = malloc(event->length);
+            if ( event->packed_data == NULL ) {
+                errnum = errno;
+                break;
+            }
+
+            if ( (errnum = read_all(proc->events_handle, 
+                            event->packed_data,
+                            event->length)) != 0 ) break;
+        }
+    }while(0);
+
+    if (errnum != 0 ) {
+        if ( errnum > 0 ) {
+            udi_printf("read_all failed: %s\n", strerror(errnum));
+        }
+
+        free_event_internal(event);
+        return NULL;
+    }
+
+    // Convert the event to a higher level representation
+    ret_event = decode_event(proc, event);
+    free_event_internal(event);
+
+    return ret_event;
+}
+
+/**
  * Create UDI-controlled process
  * 
  * @param executable   the full path to the executable
@@ -115,6 +321,7 @@ udi_process *create_process(const char *executable, char * const argv[],
         char * const envp[])
 {
     int error = 0;
+    udi_process *proc;
 
     // Validate arguments
     if (argv == NULL || executable == NULL) {
@@ -134,7 +341,7 @@ udi_process *create_process(const char *executable, char * const argv[],
         envp = get_environment();
     }
 
-    udi_process *proc = (udi_process *)malloc(sizeof(udi_process));
+    proc = (udi_process *)malloc(sizeof(udi_process));
     memset(proc, 0, sizeof(udi_process));
     proc->error_code = UDI_ERROR_NONE;
     proc->errmsg.size = ERRMSG_SIZE;
@@ -199,9 +406,11 @@ udi_error_e free_process(udi_process *proc) {
  * @return UDI_ERROR_NONE on success
  */
 udi_error_e set_udi_root_dir(const char *root_dir) {
+    size_t length;
+
     if ( processes_created > 0 ) return -1;
 
-    size_t length = strlen(root_dir);
+    length = strlen(root_dir);
 
     udi_root_dir = (char *)malloc(length);
     if (udi_root_dir == NULL) {
@@ -868,6 +1077,8 @@ udi_event *decode_event(udi_process *proc, udi_event_internal *event) {
             break;
         case UDI_EVENT_ERROR:
         {
+            udi_length errmsg_size;
+
             udi_event_error *err_event = (udi_event_error *)
                 malloc(sizeof(udi_event_error));
 
@@ -878,7 +1089,6 @@ udi_event *decode_event(udi_process *proc, udi_event_internal *event) {
                 return NULL;
             }
 
-            udi_length errmsg_size;
             if ( unpack_event_error(event, &err_event->errstr,
                         &errmsg_size) ) {
                 udi_printf("%s\n", "failed to decode error event");
