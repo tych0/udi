@@ -71,7 +71,7 @@ if topenv['CC'] == 'gcc':
         topenv.Append(CXXFLAGS = "-O2")
     
 elif topenv['CC'] == 'cl':
-    pass
+    topenv.Append(CFLAGS = "/W4")
 else:
     print 'Unknown compiler: ' + topenv['CC']
     quit()

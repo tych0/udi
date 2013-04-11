@@ -26,6 +26,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#define WIN32_LEAN_AND_MEAN 1
+
+#include <windows.h>
+
 #include "udi.h"
 #include "udi-common.h"
 #include "udi-common-platform.h"
@@ -33,6 +37,30 @@
 #include "libudi-private.h"
 
 const udi_pid INVALID_UDI_PID = -1;
+
+/**
+ * Attempts toe create the specified directory with some interpretation of the results.
+ *
+ * @param dir the full path to the directory to create
+ *
+ * @return zero on success; non-zero otherwise
+ */
+static
+int mkdir_with_check(const char *dir) {
+
+    BOOL result = CreateDirectory(dir, NULL);
+
+    if ( !result ) {
+        if ( GetLastError() == ERROR_ALREADY_EXISTS ) {
+            return 0;
+        }
+
+        // TODO
+    }
+
+
+    return 0;
+}
 
 /**
  * Creates the root UDI filesystem for the current

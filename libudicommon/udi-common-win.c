@@ -28,6 +28,10 @@
 
 // Shared debugger and debuggee UDI implementation specific to windows
 
+#define WIN32_LEAN_AND_MEAN 1
+
+#include <windows.h>
+
 #include "udi-common.h"
 
 const char *UDI_DS = "\\";
@@ -35,9 +39,25 @@ const unsigned int DS_LEN = 1;
 const char *DEFAULT_UDI_ROOT_DIR = "C:\\tmp\\udi";
 
 int read_all(udi_handle fd, void *dest, size_t length) {
-    return -1;
+
+    DWORD bytesRead = 0;
+    BOOL result = ReadFile(fd, dest, length, &bytesRead, NULL);
+
+    if ( !result ) {
+        return GetLastError();
+    }
+
+    return 0;
 }
 
 int write_all(udi_handle fd, void *src, size_t length) {
-    return -1;
+
+    DWORD bytesWritten = 0;
+    BOOL result = WriteFile(fd, src, length, &bytesWritten, NULL);
+
+    if ( !result ) {
+        return GetLastError();
+    }
+
+    return 0;
 }

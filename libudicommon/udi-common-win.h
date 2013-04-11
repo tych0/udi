@@ -31,7 +31,10 @@
 #ifndef _UDI_COMMON_WIN_H
 #define _UDI_COMMON_WIN_H 1
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <stdarg.h>
+#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,18 +47,6 @@ typedef uint64_t udi_tid;
 
 #define snprintf c99_snprintf
 
-__inline int c99_snprintf(char* str, size_t size, const char* format, ...)
-{
-    int count;
-    va_list ap;
-
-    va_start(ap, format);
-    count = c99_vsnprintf(str, size, format, ap);
-    va_end(ap);
-
-    return count;
-}
-
 __inline int c99_vsnprintf(char* str, size_t size, const char* format, va_list ap)
 {
     int count = -1;
@@ -64,6 +55,19 @@ __inline int c99_vsnprintf(char* str, size_t size, const char* format, va_list a
         count = _vsnprintf_s(str, size, _TRUNCATE, format, ap);
     if (count == -1)
         count = _vscprintf(format, ap);
+
+    return count;
+}
+
+
+__inline int c99_snprintf(char* str, size_t size, const char* format, ...)
+{
+    int count;
+    va_list ap;
+
+    va_start(ap, format);
+    count = c99_vsnprintf(str, size, format, ap);
+    va_end(ap);
 
     return count;
 }
